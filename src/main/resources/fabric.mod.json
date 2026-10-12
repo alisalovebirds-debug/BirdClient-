@@ -1,1 +1,20 @@
 
+{
+  "schemaVersion": 1,
+  "id": "birdstyleclient",
+  "version": "1.0.0",
+  "name": "Bird Style Client",
+  "description": "A custom Minecraft client GUI.",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.birdstyle.client.BirdStyleClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.18.1",
+    "minecraft": "~1.21.11",
+    "java": ">=21"
+  }
+}
+
