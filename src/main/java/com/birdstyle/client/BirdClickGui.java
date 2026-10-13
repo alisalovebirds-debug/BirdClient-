@@ -13,7 +13,6 @@ public class BirdClickGui extends Screen {
 
     private static final int BG = 0xF5080C19;
     private static final int SIDEBAR = 0xFF0A0E1B;
-    private static final int PANEL = 0xFF11182A;
     private static final int CARD = 0xFF151D31;
     private static final int HOVER = 0xFF202944;
     private static final int PURPLE = 0xFF7966FF;
@@ -59,27 +58,19 @@ public class BirdClickGui extends Screen {
         }
     }
 
-    @Override
-    protected void init() {
-        super.init();
-    }
-
-    private void text(DrawContext ctx, String value,
-                      int x, int y, int color) {
-        ctx.drawTextWithShadow(
-            textRenderer, value, x, y, color
-        );
-    }
-
     private void rect(DrawContext ctx, int x, int y,
                       int w, int h, int color) {
         ctx.fill(x, y, x + w, y + h, color);
     }
 
+    private void drawText(DrawContext ctx, String value,
+                          int x, int y, int color) {
+        ctx.drawTextWithShadow(textRenderer, value, x, y, color);
+    }
+
     @Override
     public void render(DrawContext ctx, int mouseX,
                        int mouseY, float delta) {
-
         ctx.fill(0, 0, width, height, 0x99040710);
 
         int panelW = Math.min(1000, width - 32);
@@ -92,80 +83,57 @@ public class BirdClickGui extends Screen {
         rect(ctx, x, y, sideW, panelH, SIDEBAR);
         rect(ctx, x + sideW, y, 2, panelH, BORDER);
 
-        // Branding
-        text(ctx, "♟", x + 22, y + 26, PURPLE);
-        text(ctx, "BIRD CLIENT", x + 48, y + 23, WHITE);
-        text(ctx, "BETA RELEASE", x + 48, y + 43, MUTED);
+        drawText(ctx, "BIRD CLIENT", x + 24, y + 24, WHITE);
+        drawText(ctx, "BETA RELEASE", x + 24, y + 44, MUTED);
+        drawText(ctx, "MODULES", x + 22, y + 104, MUTED);
 
-        text(ctx, "MODULES", x + 22, y + 104, MUTED);
-
-        // Sidebar categories
         for (int i = 0; i < categories.length; i++) {
             int cy = y + 132 + i * 53;
             boolean selected = category == i;
 
             if (selected) {
-                rect(ctx, x + 12, cy, sideW - 24, 42,
-                     0xFF302B57);
+                rect(ctx, x + 12, cy, sideW - 24, 42, 0xFF302B57);
                 rect(ctx, x + 12, cy, 4, 42, PURPLE);
+            } else if (mouseX >= x + 12
+                    && mouseX <= x + sideW - 12
+                    && mouseY >= cy && mouseY <= cy + 42) {
+                rect(ctx, x + 12, cy, sideW - 24, 42, HOVER);
             }
 
-            if (mouseX >= x + 12 && mouseX <= x + sideW - 12
-                && mouseY >= cy && mouseY <= cy + 42) {
-                if (!selected) {
-                    rect(ctx, x + 12, cy, sideW - 24, 42,
-                         HOVER);
-                }
-            }
-
-            text(ctx, categories[i], x + 30, cy + 15,
-                 selected ? WHITE : MUTED);
+            drawText(ctx, categories[i], x + 30, cy + 15,
+                     selected ? WHITE : MUTED);
         }
 
         int mainX = x + sideW + 28;
         int mainW = panelW - sideW - 48;
 
-        // Top tabs
         String[] tabs = {"MODULES", "FAVORITES", "APPEARANCE"};
         int[] tabX = {mainX, mainX + 145, mainX + 300};
 
         for (int i = 0; i < tabs.length; i++) {
-            text(ctx, tabs[i], tabX[i], y + 29,
-                 tab == i ? WHITE : MUTED);
-
+            drawText(ctx, tabs[i], tabX[i], y + 29,
+                     tab == i ? WHITE : MUTED);
             if (tab == i) {
                 rect(ctx, tabX[i], y + 53,
                      i == 2 ? 92 : 72, 3, PURPLE);
             }
         }
 
-        // Search bar (visual header)
-        int searchX = x + panelW - 285;
-        rect(ctx, searchX, y + 14, 250, 42, SIDEBAR);
-        rect(ctx, searchX, y + 14, 250, 1, BORDER);
-        rect(ctx, searchX, y + 55, 250, 1, BORDER);
-        text(ctx, "Search modules", searchX + 16,
-             y + 29, MUTED);
-
         int contentY = y + 92;
 
         if (tab == 2) {
-            text(ctx, "APPEARANCE", mainX, contentY,
-                 WHITE);
-            text(ctx, "Dark theme", mainX, contentY + 48,
-                 MUTED);
-            text(ctx, "Accent color: Purple",
-                 mainX, contentY + 82, PURPLE);
-            text(ctx, "Compact cards: ON",
-                 mainX, contentY + 116, MUTED);
-            text(ctx, "Blur background: OFF",
-                 mainX, contentY + 150, MUTED);
-
+            drawText(ctx, "APPEARANCE", mainX, contentY, WHITE);
+            drawText(ctx, "Dark theme", mainX, contentY + 48, MUTED);
+            drawText(ctx, "Accent color: Purple",
+                     mainX, contentY + 82, PURPLE);
+            drawText(ctx, "Compact cards: ON",
+                     mainX, contentY + 116, MUTED);
+            drawText(ctx, "Blur background: OFF",
+                     mainX, contentY + 150, MUTED);
         } else {
-            text(ctx,
+            drawText(ctx,
                 tab == 1 ? "FAVORITE MODULES"
-                         : categories[category].toUpperCase()
-                           + " MODULES",
+                    : categories[category].toUpperCase() + " MODULES",
                 mainX, contentY, WHITE);
 
             int count = 0;
@@ -174,8 +142,8 @@ public class BirdClickGui extends Screen {
                 count++;
             }
 
-            text(ctx, count + " MODULES",
-                 mainX, contentY + 23, MUTED);
+            drawText(ctx, count + " MODULES",
+                     mainX, contentY + 23, MUTED);
 
             int cardY = contentY + 52 - scroll;
             int cardW = mainW;
@@ -184,8 +152,8 @@ public class BirdClickGui extends Screen {
                 if (tab == 1 && !favorites.get(i)) continue;
 
                 int cy = cardY;
-                boolean hovered =
-                    mouseX >= mainX && mouseX <= mainX + cardW
+                boolean hovered = mouseX >= mainX
+                    && mouseX <= mainX + cardW
                     && mouseY >= cy && mouseY <= cy + 68;
 
                 rect(ctx, mainX, cy, cardW, 68,
@@ -193,34 +161,33 @@ public class BirdClickGui extends Screen {
                 rect(ctx, mainX, cy, cardW, 1, BORDER);
                 rect(ctx, mainX, cy + 67, cardW, 1, BORDER);
 
-                text(ctx, modules[i], mainX + 18,
-                     cy + 13, WHITE);
+                drawText(ctx, modules[i], mainX + 18,
+                         cy + 13, WHITE);
+                drawText(ctx, descriptions[i], mainX + 18,
+                         cy + 39, MUTED);
 
-                text(ctx, descriptions[i], mainX + 18,
-                     cy + 39, MUTED);
-
-                text(ctx, favorites.get(i) ? "★" : "☆",
-                     mainX + cardW - 75, cy + 25, PURPLE);
+                drawText(ctx, favorites.get(i) ? "*" : "+",
+                         mainX + cardW - 75, cy + 25, PURPLE);
 
                 int toggleX = mainX + cardW - 48;
                 rect(ctx, toggleX, cy + 20, 30, 26,
                      enabled.get(i) ? PURPLE : 0xFF252D42);
-                rect(ctx, toggleX + (enabled.get(i) ? 15 : 3),
-                     cy + 23, 20 - (enabled.get(i) ? 0 : 0),
-                     20, WHITE);
+
+                rect(ctx, toggleX + (enabled.get(i) ? 13 : 3),
+                     cy + 23, 14, 20, WHITE);
 
                 cardY += 77;
             }
         }
 
-        text(ctx, "Bird Client 1.21.11",
-             x + panelW - 155, y + panelH + 8, MUTED);
+        drawText(ctx, "Bird Client 1.21.11",
+                 x + panelW - 155, y + panelH - 18, MUTED);
 
         super.render(ctx, mouseX, mouseY, delta);
     }
 
     @Override
-    protected boolean mouseClicked(Click click, boolean doubled) {
+    public boolean mouseClicked(Click click, boolean doubled) {
         double mouseX = click.x();
         double mouseY = click.y();
 
@@ -294,4 +261,3 @@ public class BirdClickGui extends Screen {
         return false;
     }
 }
-
