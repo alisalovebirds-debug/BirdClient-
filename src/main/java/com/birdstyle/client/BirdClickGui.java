@@ -19,11 +19,14 @@ public class BirdClickGui extends Screen {
     private static final int BORDER = 0xFF29324D;
 
     private static class Module {
-        String name, category, description;
-        boolean enabled, favorite;
+        final String name;
+        final String category;
+        final String description;
+        boolean enabled;
+        boolean favorite;
         int delay = 100;
-        boolean weaponsOnly = false;
-        boolean extraSetting = false;
+        boolean weaponsOnly;
+        boolean extraSetting;
 
         Module(String name, String category, String description) {
             this.name = name;
@@ -32,34 +35,42 @@ public class BirdClickGui extends Screen {
         }
     }
 
-    // Static storage keeps states when the GUI is reopened.
     private static final List<Module> MODULES = new ArrayList<>();
 
     static {
         add("Auto Clicker", "Combat", "Automatic clicking");
-        add("Reach Display", "Combat", "Display reach information");
-        add("Hit Color", "Combat", "Customize hit indicator");
-        add("Sprint Assist", "Movement", "Assist with sprinting");
+        add("Velocity", "Combat", "Velocity settings");
+        add("Hit Color", "Combat", "Hit indicator settings");
+        add("Sprint Assist", "Movement", "Sprint assistance");
         add("Auto Jump", "Movement", "Automatic jumping");
         add("Step Assist", "Movement", "Step settings");
-        add("FPS Display", "Visual", "Display frames per second");
-        add("Fullbright", "Visual", "Brightness settings");
-        add("Crosshair", "Visual", "Crosshair appearance");
-        add("Keystrokes", "Visual", "Show movement keys");
-        add("Armor HUD", "Visual", "Display equipped armor");
-        add("Coordinates", "Visual", "Display player coordinates");
-        add("Velocity", "Combat", "Velocity settings");
-        add("Auto Tool", "Tools", "Tool selection settings");
-        add("Durability", "Tools", "Display item durability");
-        add("Item Info", "Tools", "Display item information");
-        add("Chat Timestamps", "Misc", "Chat display settings");
-        add("Toggle Sprint", "Misc", "Sprint toggle settings");
         add("Zoom", "Utility", "Zoom settings");
         add("Inventory Sort", "Utility", "Inventory settings");
+        add("Toggle Sprint", "Misc", "Sprint toggle settings");
+        add("Chat Timestamps", "Misc", "Chat display settings");
+        add("Auto Tool", "Tools", "Tool selection settings");
+        add("Durability", "Tools", "Item durability display");
+
+        add("FPS Display", "Visual", "Display current FPS");
+        add("Fullbright", "Visual", "Brighten dark areas");
+        add("Crosshair", "Visual", "Custom crosshair");
+        add("Keystrokes", "Visual", "Display movement keys");
+        add("Armor HUD", "Visual", "Display equipped armor");
+        add("Coordinates", "Visual", "Display player coordinates");
     }
 
     private static void add(String name, String category, String description) {
         MODULES.add(new Module(name, category, description));
+    }
+
+    // BirdHud.java uses this method to read the same enabled states.
+    public static boolean isModuleEnabled(String name) {
+        for (Module module : MODULES) {
+            if (module.name.equals(name)) {
+                return module.enabled;
+            }
+        }
+        return false;
     }
 
     private final String[] categories = {
@@ -69,7 +80,7 @@ public class BirdClickGui extends Screen {
     private int category = 0;
     private int tab = 0;
     private int scroll = 0;
-    private Module selectedModule = null;
+    private Module selectedModule;
     private boolean compact = false;
     private boolean blur = false;
     private int accentChoice = 0;
@@ -85,16 +96,6 @@ public class BirdClickGui extends Screen {
             case 3 -> 0xFF61D995;
             default -> PURPLE;
         };
-    }
-
-    private void rect(DrawContext ctx, int x, int y,
-                      int w, int h, int color) {
-        ctx.fill(x, y, x + w, y + h, color);
-    }
-
-    private void text(DrawContext ctx, String value,
-                      int x, int y, int color) {
-        ctx.drawTextWithShadow(textRenderer, value, x, y, color);
     }
 
     private int panelX() {
@@ -134,7 +135,7 @@ public class BirdClickGui extends Screen {
     }
 
     private int listBottom() {
-        return panelY() + panelH() - 18;
+        return panelY() + panelH() - 22;
     }
 
     private int cardHeight() {
@@ -151,14 +152,25 @@ public class BirdClickGui extends Screen {
         for (Module m : MODULES) {
             if (tab == 1) {
                 if (m.favorite) result.add(m);
-            } else if (selectedModule != null) {
-                // Settings page doesn't use this list.
-            } else if (m.category.equals(categories[category])) {
+            } else if (tab == 0 && m.category.equals(categories[category])) {
                 result.add(m);
             }
         }
 
         return result;
+    }
+
+    private void drawText(DrawContext ctx, String value,
+                          int x, int y, int color) {
+        ctx.drawTextWithShadow(textRenderer, value, x, y, color);
+    }
+
+    private void drawOption(DrawContext ctx, int x, int y,
+                            String name, String value, boolean active) {
+        ctx.fill(x, y, x + mainW(), y + 38, CARD);
+        drawText(ctx, name, x + 12, y + 13, WHITE);
+        drawText(ctx, value, x + mainW() - 90, y + 13,
+                 active ? accent() : MUTED);
     }
 
     @Override
@@ -174,13 +186,13 @@ public class BirdClickGui extends Screen {
         int mx = mainX();
         int mw = mainW();
 
-        rect(ctx, x, y, pw, ph, BG);
-        rect(ctx, x, y, sw, ph, SIDEBAR);
-        rect(ctx, x + sw, y, 2, ph, BORDER);
+        ctx.fill(x, y, x + pw, y + ph, BG);
+        ctx.fill(x, y, x + sw, y + ph, SIDEBAR);
+        ctx.fill(x + sw, y, x + sw + 2, y + ph, BORDER);
 
-        text(ctx, "BIRD CLIENT", x + 20, y + 20, WHITE);
-        text(ctx, "BETA RELEASE", x + 20, y + 40, MUTED);
-        text(ctx, "MODULES", x + 20, y + 80, MUTED);
+        drawText(ctx, "BIRD CLIENT", x + 20, y + 20, WHITE);
+        drawText(ctx, "BETA RELEASE", x + 20, y + 40, MUTED);
+        drawText(ctx, "MODULES", x + 20, y + 80, MUTED);
 
         for (int i = 0; i < categories.length; i++) {
             int cy = y + 100 + i * 43;
@@ -188,53 +200,51 @@ public class BirdClickGui extends Screen {
                 && selectedModule == null;
 
             if (active) {
-                rect(ctx, x + 10, cy, sw - 20, 36, 0xFF302B57);
-                rect(ctx, x + 10, cy, 4, 36, accent());
+                ctx.fill(x + 10, cy, x + sw - 10, cy + 36, 0xFF302B57);
+                ctx.fill(x + 10, cy, x + 14, cy + 36, accent());
             } else if (mouseX >= x + 10 && mouseX <= x + sw - 10
                     && mouseY >= cy && mouseY <= cy + 36) {
-                rect(ctx, x + 10, cy, sw - 20, 36, HOVER);
+                ctx.fill(x + 10, cy, x + sw - 10, cy + 36, HOVER);
             }
 
-            text(ctx, categories[i], x + 25, cy + 12,
-                 active ? WHITE : MUTED);
+            drawText(ctx, categories[i], x + 25, cy + 12,
+                     active ? WHITE : MUTED);
         }
 
         String[] tabs = {"MODULES", "FAVORITES", "APPEARANCE"};
-        int[] tabOffsets = {0, 145, 300};
+        int[] offsets = {0, 145, 300};
 
         for (int i = 0; i < tabs.length; i++) {
-            int tx = mx + tabOffsets[i];
-            text(ctx, tabs[i], tx, y + 26, tab == i ? WHITE : MUTED);
-
+            int tx = mx + offsets[i];
+            drawText(ctx, tabs[i], tx, y + 26, tab == i ? WHITE : MUTED);
             if (tab == i) {
-                rect(ctx, tx, y + 48, i == 2 ? 92 : 78, 3, accent());
+                ctx.fill(tx, y + 48, tx + (i == 2 ? 92 : 78),
+                         y + 51, accent());
             }
         }
 
         if (selectedModule != null) {
-            drawSettings(ctx, mx, mw);
+            drawSettings(ctx, mx);
         } else if (tab == 2) {
             drawAppearance(ctx, mx);
         } else {
-            drawModuleList(ctx, mx, mw, mouseX, mouseY);
+            drawModules(ctx, mx, mw, mouseX, mouseY);
         }
 
-        text(ctx, "Bird Client 1.21.11",
-             x + pw - 155, y + ph - 15, MUTED);
+        drawText(ctx, "Bird Client 1.21.11",
+                 x + pw - 155, y + ph - 15, MUTED);
     }
 
-    private void drawModuleList(DrawContext ctx, int mx, int mw,
-                                int mouseX, int mouseY) {
-        String heading = tab == 1 ? "FAVORITE MODULES"
-            : categories[category].toUpperCase() + " MODULES";
-
-        text(ctx, heading, mx, contentTop(), WHITE);
+    private void drawModules(DrawContext ctx, int mx, int mw,
+                             int mouseX, int mouseY) {
+        drawText(ctx, tab == 1 ? "FAVORITE MODULES"
+            : categories[category].toUpperCase() + " MODULES",
+            mx, contentTop(), WHITE);
 
         List<Module> list = visibleModules();
         int top = listTop();
         int bottom = listBottom();
-        int ch = cardHeight();
-        int step = ch + cardGap();
+        int step = cardHeight() + cardGap();
         int maxScroll = Math.max(0, list.size() * step - (bottom - top));
         scroll = Math.max(0, Math.min(scroll, maxScroll));
 
@@ -244,52 +254,52 @@ public class BirdClickGui extends Screen {
             Module m = list.get(i);
             int cy = top + i * step - scroll;
 
-            if (cy + ch < top || cy > bottom) continue;
+            if (cy + cardHeight() < top || cy > bottom) continue;
 
             boolean hovering = mouseX >= mx && mouseX <= mx + mw
-                && mouseY >= cy && mouseY <= cy + ch;
+                && mouseY >= cy && mouseY <= cy + cardHeight();
 
-            rect(ctx, mx, cy, mw, ch, hovering ? HOVER : CARD);
-            rect(ctx, mx, cy, mw, 1, BORDER);
-            rect(ctx, mx, cy + ch - 1, mw, 1, BORDER);
+            ctx.fill(mx, cy, mx + mw, cy + cardHeight(),
+                     hovering ? HOVER : CARD);
+            ctx.fill(mx, cy, mx + mw, cy + 1, BORDER);
 
-            text(ctx, m.name, mx + 14, cy + 10, WHITE);
-            text(ctx, m.description, mx + 14, cy + 34, MUTED);
+            drawText(ctx, m.name, mx + 14, cy + 10, WHITE);
+            drawText(ctx, m.description, mx + 14, cy + 34, MUTED);
 
             int starX = mx + mw - 82;
-            text(ctx, m.favorite ? "*" : "+", starX, cy + ch / 2 - 4,
-                 accent());
+            drawText(ctx, m.favorite ? "*" : "+",
+                     starX, cy + cardHeight() / 2 - 4, accent());
 
             int toggleX = mx + mw - 43;
-            rect(ctx, toggleX, cy + ch / 2 - 12, 30, 24,
-                 m.enabled ? accent() : 0xFF252D42);
-            rect(ctx, toggleX + (m.enabled ? 13 : 3),
-                 cy + ch / 2 - 9, 14, 18, WHITE);
+            int toggleY = cy + cardHeight() / 2 - 12;
+            ctx.fill(toggleX, toggleY, toggleX + 30, toggleY + 24,
+                     m.enabled ? accent() : 0xFF252D42);
+            ctx.fill(toggleX + (m.enabled ? 13 : 3), toggleY + 3,
+                     toggleX + (m.enabled ? 27 : 17), toggleY + 21, WHITE);
         }
 
         ctx.disableScissor();
 
         if (maxScroll > 0) {
-            int trackX = mx + mw - 4;
             int trackH = bottom - top;
-            rect(ctx, trackX, top, 3, trackH, 0xFF202944);
             int thumbH = Math.max(24, trackH * trackH /
-                (list.size() * step));
+                Math.max(1, list.size() * step));
             int thumbY = top + (trackH - thumbH) * scroll /
                 Math.max(1, maxScroll);
-            rect(ctx, trackX, thumbY, 3, thumbH, accent());
+            ctx.fill(mx + mw - 4, top, mx + mw - 1, bottom, 0xFF202944);
+            ctx.fill(mx + mw - 4, thumbY, mx + mw - 1,
+                     thumbY + thumbH, accent());
         }
 
         if (list.isEmpty()) {
-            text(ctx, tab == 1 ? "Star a module to add it here."
-                : "No modules in this category.", mx, top + 12, MUTED);
+            drawText(ctx, tab == 1 ? "No favorites yet."
+                : "No modules here.", mx, top + 12, MUTED);
         }
     }
 
     private void drawAppearance(DrawContext ctx, int mx) {
         int cy = contentTop();
-
-        text(ctx, "APPEARANCE", mx, cy, WHITE);
+        drawText(ctx, "APPEARANCE", mx, cy, WHITE);
 
         drawOption(ctx, mx, cy + 35, "Compact cards",
                    compact ? "ON" : "OFF", compact);
@@ -299,29 +309,20 @@ public class BirdClickGui extends Screen {
                    new String[]{"Purple", "Blue", "Pink", "Green"}[accentChoice],
                    true);
 
-        text(ctx, "Tap an option to change it.", mx, cy + 185, MUTED);
+        drawText(ctx, "Tap a row to change it.", mx, cy + 185, MUTED);
     }
 
-    private void drawOption(DrawContext ctx, int x, int y,
-                            String name, String value, boolean on) {
-        rect(ctx, x, y, mainW(), 38, CARD);
-        text(ctx, name, x + 12, y + 13, WHITE);
-        text(ctx, value, x + mainW() - 85, y + 13,
-             on ? accent() : MUTED);
-    }
-
-    private void drawSettings(DrawContext ctx, int mx, int mw) {
+    private void drawSettings(DrawContext ctx, int mx) {
         Module m = selectedModule;
 
-        text(ctx, "< BACK", mx, contentTop(), accent());
-        text(ctx, m.name.toUpperCase() + " SETTINGS",
-             mx, contentTop() + 30, WHITE);
-        text(ctx, m.description, mx, contentTop() + 52, MUTED);
+        drawText(ctx, "< BACK", mx, contentTop(), accent());
+        drawText(ctx, m.name.toUpperCase() + " SETTINGS",
+                 mx, contentTop() + 30, WHITE);
+        drawText(ctx, m.description, mx, contentTop() + 52, MUTED);
 
         int cy = contentTop() + 85;
-
-        drawOption(ctx, mx, cy, "Enabled", m.enabled ? "ON" : "OFF",
-                   m.enabled);
+        drawOption(ctx, mx, cy, "Enabled",
+                   m.enabled ? "ON" : "OFF", m.enabled);
         drawOption(ctx, mx, cy + 48, "Delay",
                    m.delay + " ms", false);
         drawOption(ctx, mx, cy + 96, "Weapons only",
@@ -329,12 +330,8 @@ public class BirdClickGui extends Screen {
         drawOption(ctx, mx, cy + 144, "Extra setting",
                    m.extraSetting ? "ON" : "OFF", m.extraSetting);
 
-        text(ctx, "Click a row to change its setting.",
-             mx, cy + 202, MUTED);
-        text(ctx, "These are generic settings; each module needs",
-             mx, cy + 224, MUTED);
-        text(ctx, "its own implementation for gameplay effects.",
-             mx, cy + 240, MUTED);
+        drawText(ctx, "Settings must be implemented per module.",
+                 mx, cy + 202, MUTED);
     }
 
     @Override
@@ -391,17 +388,14 @@ public class BirdClickGui extends Screen {
                     return true;
                 }
                 if (my >= cy + 96 && my < cy + 134) {
-                    selectedModule.weaponsOnly =
-                        !selectedModule.weaponsOnly;
+                    selectedModule.weaponsOnly = !selectedModule.weaponsOnly;
                     return true;
                 }
                 if (my >= cy + 144 && my < cy + 182) {
-                    selectedModule.extraSetting =
-                        !selectedModule.extraSetting;
+                    selectedModule.extraSetting = !selectedModule.extraSetting;
                     return true;
                 }
             }
-
             return true;
         }
 
