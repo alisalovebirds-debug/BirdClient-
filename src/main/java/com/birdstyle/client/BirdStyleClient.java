@@ -9,19 +9,20 @@ import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 public class BirdStyleClient implements ClientModInitializer {
+
     private static KeyBinding openMenuKey;
 
     @Override
     public void onInitializeClient() {
         openMenuKey = KeyBindingHelper.registerKeyBinding(
-            new KeyBinding(
-                "key.birdstyleclient.open_menu",
-                InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_RIGHT_SHIFT,
-                KeyBinding.Category.create(
-                    Identifier.of("birdstyleclient", "main")
+                new KeyBinding(
+                        "key.birdstyleclient.open_menu",
+                        InputUtil.Type.KEYSYM,
+                        GLFW.GLFW_KEY_RIGHT_SHIFT,
+                        KeyBinding.Category.create(
+                                Identifier.of("birdstyleclient", "main")
+                        )
                 )
-            )
         );
 
         BirdHud.register();
