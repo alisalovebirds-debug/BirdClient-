@@ -9,7 +9,6 @@ import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 public class BirdStyleClient implements ClientModInitializer {
-
     private static KeyBinding openMenuKey;
 
     @Override
@@ -24,6 +23,8 @@ public class BirdStyleClient implements ClientModInitializer {
                 )
             )
         );
+
+        BirdHud.register();
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openMenuKey.wasPressed()) {
