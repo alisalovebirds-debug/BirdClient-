@@ -8,7 +8,7 @@
   "environment": "client",
   "entrypoints": {
     "client": [
-      "com.birdstyle.client.BirdStyleClient"
+      "com.birdstyleclient.BirdStyleClient"
     ]
   },
   "depends": {
@@ -17,4 +17,3 @@
     "java": ">=21"
   }
 }
-
